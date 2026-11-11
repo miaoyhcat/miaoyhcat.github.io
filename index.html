@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Manga → PDF &amp; Reader</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+ background:#0f1115;color:#e6e8ee;font:15px/1.7 -apple-system,"Segoe UI","Noto Sans","Microsoft YaHei",sans-serif;padding:24px}
+.box{max-width:560px;width:100%;background:#171a21;border:1px solid #242938;border-radius:14px;padding:26px 24px}
+h1{margin:0 0 6px;font-size:20px}
+p{margin:0 0 14px;color:#9aa3b8;font-size:13.5px}
+a.go{display:block;text-align:center;background:#4f7cff;color:#fff;text-decoration:none;
+ border-radius:10px;padding:14px;font-size:15px;font-weight:600}
+a.go:hover{background:#3f6ae8}
+.status{margin-top:12px;font-size:12.5px;color:#6b7488;text-align:center;min-height:20px}
+.hint{margin-top:16px;padding-top:14px;border-top:1px solid #222734;font-size:12.5px;color:#6b7488}
+</style></head>
+<body><div class="box">
+  <h1>Manga → PDF &amp; Reader</h1>
+  <p>Opening the app…</p>
+  <a class="go" id="go" href="#">Open the app</a>
+  <div class="status" id="status"></div>
+  <div class="hint">
+    Launcher only — the application runs on a private host and is published through a tunnel.
+    Personal use, non-commercial; please support the official releases.
+  </div>
+</div>
+<script>
+(function () {
+  var REPO = "miaoyhcat/eh-pdf-web";          // current.txt lives here
+  var FALLBACK = "https://miaoyhcat.github.io/eh-pdf-web/";
+  var statusEl = document.getElementById("status");
+  var goEl = document.getElementById("go");
+  var done = false;
+
+  function open(u) {
+    if (done || !u || u.indexOf("https://") !== 0) return false;
+    done = true;
+    goEl.href = u;
+    statusEl.textContent = "Redirecting…";
+    location.replace(u);
+    return true;
+  }
+  function viaApi() {
+    var ctrl = new AbortController();
+    var t = setTimeout(function () { ctrl.abort(); }, 2500);
+    return fetch("https://api.github.com/repos/" + REPO + "/contents/current.txt",
+                 {cache: "no-store", signal: ctrl.signal,
+                  headers: {"Accept": "application/vnd.github.raw"}})
+      .then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (s) { return s.trim(); })
+      .catch(function () { return ""; })
+      .finally(function () { clearTimeout(t); });
+  }
+  function viaFile() {
+    return fetch("current.txt?t=" + Date.now(), {cache: "no-store"})
+      .then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (s) { return s.trim(); })
+      .catch(function () { return ""; });
+  }
+
+  statusEl.textContent = "Looking up the current address…";
+  viaApi()
+    .then(function (u) { return open(u) ? null : viaFile(); })
+    .then(function (u) { if (u) open(u); })
+    .catch(function () {})
+    .finally(function () {
+      setTimeout(function () { if (!done) open(FALLBACK); }, 2600);
+    });
+})();
+</script>
+</body></html>
